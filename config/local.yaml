@@ -1,0 +1,6 @@
+env: "local"
+storage_path: "./storage/storage.db"  # путь до фала, в котором хранится БД
+http_server: 
+  address: "localhost:8082"
+  timeout: 4s # на чтение запроса и такое же на отправку
+  idle_timeout: 60s # время жизни соединения с клиентом
