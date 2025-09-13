@@ -1,0 +1,38 @@
+# Private and public keys
+*.key
+*.pem
+*.pub
+*_key
+*_private
+*_public
+
+# Keys directory
+keys/
+
+# Specific key files in this project (if they exist in root)
+2
+2.pub
+y
+y.pub
+
+# Binary files
+*.exe
+bin/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Environment files
+.env
+.env.local
+.env.production
