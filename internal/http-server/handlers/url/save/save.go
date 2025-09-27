@@ -28,6 +28,7 @@ type Response struct {
 // TODO: move to config (or to DB)
 const aliasLenght = 6
 
+// go:generate go run github.com/vektra/mockery/v2@v2.28.2 --name=URLSaver
 type URLSaver interface {
 	SaveURL(urlToSave, alias string) (int64, error)
 }
@@ -73,18 +74,17 @@ func New(log *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
 		}
 
 		id, err := urlSaver.SaveURL(req.URL, alias)
-		if errors.Is(err, storage.ErrURLExists) {
-			log.Info("url already exists", slog.String("url", req.URL))
-
-			render.JSON(w, r, resp.Error("url already exists"))
-
+		if err == nil {
+			log.Info("url added", slog.Int64("id", id))
+			responseOK(w, r, alias)
 			return
 		}
 
-		// ДОБАВКА: отдельная обработка коллизии алиаса
+		// Handle alias collision
 		if errors.Is(err, storage.ErrURLExists) {
 			// если алиас задан пользователем — сразу конфликт
 			if req.Alias != "" {
+				log.Info("alias already in use", slog.String("alias", alias))
 				render.JSON(w, r, resp.Error("alias already exists"))
 				return
 			}
@@ -92,33 +92,28 @@ func New(log *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
 			// если алиас сгенерирован — пробуем несколько раз
 			for attempt := 1; attempt <= 4; attempt++ {
 				alias = random.NewRandomString(aliasLenght)
-				if _, err = urlSaver.SaveURL(req.URL, alias); err == nil {
-					render.JSON(w, r, Response{Response: resp.OK(), Alias: alias})
+				if id, err = urlSaver.SaveURL(req.URL, alias); err == nil {
+					log.Info("url saved after retry", slog.Int64("id", id), slog.String("alias", alias), slog.Int("attempt", attempt))
+					responseOK(w, r, alias)
 					return
 				}
 				if !errors.Is(err, storage.ErrURLExists) {
+					log.Error("failed to save url", sl.Err(err))
 					render.JSON(w, r, resp.Error("failed to save url"))
 					return
 				}
+				log.Info("generated alias collision, retrying", slog.String("alias", alias), slog.Int("attempt", attempt))
 			}
+			// Exhausted attempts to generate a unique alias
+			log.Error("could not generate unique alias")
 			render.JSON(w, r, resp.Error("could not generate unique alias"))
 			return
 		}
 
-		if err != nil {
-			log.Error("failed to add url", sl.Err(err))
-
-			render.JSON(w, r, resp.Error("failed to add url"))
-
-			return
-		}
-
-		// прочие неожиданные ошибки
+		// Unexpected storage error
+		log.Error("failed to save url", sl.Err(err))
 		render.JSON(w, r, resp.Error("failed to save url"))
-
-		log.Info("url added", slog.Int64("id", id))
-
-		responseOK(w, r, alias)
+		return
 	}
 }
 
