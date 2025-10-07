@@ -82,7 +82,7 @@ func TestSaveHandler(t *testing.T) {
 			},
 			mockSetup:      func(m *mocks.URLSaverMock) {},
 			expectedStatus: http.StatusOK,
-			expectedError:  "field %s is not a valid URL",
+			expectedError:  "field URL is not a valid URL",
 		},
 		{
 			name: "Empty URL",
@@ -92,7 +92,7 @@ func TestSaveHandler(t *testing.T) {
 			},
 			mockSetup:      func(m *mocks.URLSaverMock) {},
 			expectedStatus: http.StatusOK,
-			expectedError:  "field %s is not valid",
+			expectedError:  "field URL is not valid",
 		},
 	}
 
